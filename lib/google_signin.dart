@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 class GoogleAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId:"928895619267-59euofqvpbdtip0njth6vbt15cr75pnn.apps.googleusercontent.com",
+    ClientId:"928895619267-59euofqvpbdtip0njth6vbt15cr75pnn.apps.googleusercontent.com",
   );
 
   Future<User?> signInWithGoogle(BuildContext context) async {
