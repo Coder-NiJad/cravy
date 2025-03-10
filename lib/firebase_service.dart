@@ -1,10 +1,10 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+//import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 
 class FirebaseService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  //final FlutterLocalNotificationsPlugin _localNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
     // Request permission for notifications
@@ -23,10 +23,10 @@ class FirebaseService {
     });
 
     // Handle foreground notifications
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("Foreground notification received: ${message.notification?.title}");
-      _showNotification(message);
-    });
+    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    //   print("Foreground notification received: ${message.notification?.title}");
+    //   _showNotification(message);
+    // });
 
     // Handle notification taps when the app is in the background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
@@ -44,20 +44,20 @@ class FirebaseService {
     }
   }
 
-  void _showNotification(RemoteMessage message) {
-    var androidDetails = AndroidNotificationDetails(
-      'channel_id', 'channel_name',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-
-    var notificationDetails = NotificationDetails(android: androidDetails);
-
-    _localNotificationsPlugin.show(
-      0,
-      message.notification?.title,
-      message.notification?.body,
-      notificationDetails,
-    );
-  }
+  // void _showNotification(RemoteMessage message) {
+  //   var androidDetails = AndroidNotificationDetails(
+  //     'channel_id', 'channel_name',
+  //     importance: Importance.high,
+  //     priority: Priority.high,
+  //   );
+  //
+  //   var notificationDetails = NotificationDetails(android: androidDetails);
+  //
+  //   _localNotificationsPlugin.show(
+  //     0,
+  //     message.notification?.title,
+  //     message.notification?.body,
+  //     notificationDetails,
+  //   );
+  // }
 }
