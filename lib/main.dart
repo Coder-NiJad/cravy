@@ -1,17 +1,27 @@
-// main.dart// login_screen.dart
-// main.dart
+
 import 'package:cravy/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
+import 'firebase_service.dart';
 import 'login_screen.dart';
+import 'notification_service.dart';
+
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print("Handling a background message: ${message.messageId}");
+}
 
 Future main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await NotificationService.initialize(); // Initialize FCM
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  FirebaseService firebaseService = FirebaseService();
+  await firebaseService.initialize();
   // await FirebaseAppCheck.instance.activate(
   //   webProvider: ReCaptchaEnterpriseProvider(
   //     '6LcuTe4qAAAAADqrlpL2c2zjLVlytoC6GejgDcBu',

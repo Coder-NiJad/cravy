@@ -40,10 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 10),
                     Text(
                       'Glad to see you again!',
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 20, color: Colors.grey),
                     ),
                     Padding(
                       padding: EdgeInsets.fromLTRB(1.0, 2.0, 10.0, 2.0),
@@ -51,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         image: AssetImage('assets/images/cravybglogo.png'),
                         height: 250,
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -68,8 +65,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: 'Email Address',
                         hintText: 'Enter your email address',
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20.0),
-                            borderSide: BorderSide.none),
+                          borderRadius: BorderRadius.circular(20.0),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -90,19 +88,24 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: 'Password',
                         hintText: 'Enter your password',
                         border: OutlineInputBorder(
-                            borderSide: BorderSide.none,
-                            borderRadius: BorderRadius.circular(20.0)),
+                          borderSide: BorderSide.none,
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
                       ),
                       obscureText: true,
                     ),
+                    SizedBox(height: 20),
+                                      // GOOGLE sign-in
                     ElevatedButton(
                       onPressed: () async {
                         GoogleAuthService().signInWithGoogle(context);
                       },
-                      child: const Text("Sign in with Google"),
-                    ),
-
-                    const SizedBox(height: 40),
+                      child: Row(children: [
+                        Image.asset('assets/images/logo.png', width: 26, height: 26,),
+                        const Text('    Continue with Google', style: TextStyle(fontSize: 18, color: Colors.black),)
+                      ],
+                    ),),
+                    SizedBox(height: 40),
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -112,11 +115,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const HomeScreen()),
+                              builder: (context) => const HomeScreen(),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[600], // Orange button color
+                          backgroundColor:
+                              Colors.red[600], // Orange button color
                         ),
                         child: const Text(
                           'Login',
@@ -134,16 +139,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context, // Pass the BuildContext here
                           MaterialPageRoute(
-                            builder: (context) =>
-                            const SignupScreen(), // Use the builder property
+                            builder:
+                                (context) =>
+                                    const SignupScreen(), // Use the builder property
                           ),
                         ); // Navigate to the signup screen
                       },
                       child: Text.rich(
                         TextSpan(
                           text: "Don't have an account? ",
-                          style:
-                          const TextStyle(color: Colors.grey, fontSize: 15),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 15,
+                          ),
                           children: [
                             TextSpan(
                               text: 'Create one!',
