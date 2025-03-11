@@ -1,7 +1,9 @@
 // login_screen.dart
 // login_screen.dart
 import 'package:cravy/signup_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'google_signin.dart';
 import 'home_screen.dart'; // Import HomeScreen
 
@@ -109,19 +111,35 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 50,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Navigate to HomeScreen after clicking login button
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomeScreen(),
-                            ),
-                          );
+                      child:ElevatedButton(
+                        onPressed: () async {
+                          String email = _username.text.trim();
+                          String password = _password.text.trim();
+
+                          if (email.isEmpty || password.isEmpty) {
+                            Fluttertoast.showToast(msg: "Please enter email and password");
+                            return;
+                          }
+
+                          try {
+                            UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+                              email: email,
+                              password: password,
+                            );
+
+                            if (userCredential.user != null) {
+                              // Successful login, navigate to home screen
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                              );
+                            }
+                          } catch (e) {
+                            Fluttertoast.showToast(msg: "Invalid credentials. Please try again.");
+                          }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.red[600], // Orange button color
+                          backgroundColor: Colors.red[600], // Red button color
                         ),
                         child: const Text(
                           'Login',
