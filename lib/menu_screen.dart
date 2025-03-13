@@ -1,179 +1,133 @@
-// menu_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'cart_provider.dart'; // Import your cart provider
 
-class MenuScreen extends StatelessWidget {
-  const MenuScreen({super.key});
+class MenuScreen extends ConsumerStatefulWidget {
+  final String userId;
+
+  const MenuScreen({super.key, required this.userId});
+
+  @override
+  ConsumerState<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends ConsumerState<MenuScreen> {
+  void _addToCart(Map<String, dynamic> itemData, String itemId) {
+    final cartNotifier = ref.read(cartProvider(widget.userId).notifier);
+
+    final cartItem = CartItem(
+      id: itemId,
+      name: itemData['Name'] ?? "Unknown Item",
+      price: (itemData['Price']?.toDouble() ?? 0.0),
+      quantity: 1,
+      imageUrl: itemData['imageUrl'] ?? "https://via.placeholder.com/50", // Default image
+    );
+
+    cartNotifier.addToCart(cartItem);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Added to Cart")),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.red[600],
-        title: const Text('Menu'),
-      ),
-      body: ListView(
-        children: [
-          // Beverages Category
-          buildCategory(
-            'Beverages',
-            [
-              menuItem('Chai', '10/-'),
-              menuItem('Coffee', '20/-'),
-              menuItem('Black Coffee', '15/-'),
-              menuItem('Lassi', '30/-'),
-              menuItem('Butter Milk', '20/-'),
-              menuItem('Cold Coffee', '50/-'),
-              menuItem('Chocolate Shake', '50/-'),
-              menuItem('Strawberry Shake', '50/-'),
-            ],
-          ),
+      appBar: AppBar(title: Text("Menu")),
+      body: StreamBuilder(
+        stream: FirebaseFirestore.instance.collection('menu').snapshots(),
+        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          // Snacks Category
-          buildCategory(
-            'Snacks',
-            [
-              menuItem('Poha', '15/-'),
-              menuItem('Kachori', '15/-'),
-              menuItem('Aloo Bada', '15/-'),
-              menuItem('Bread Bada', '20/-'),
-              menuItem('Baked Samosa (Sada)', '20/-'),
-              menuItem('Baked Samosa (Banakar)', '25/-'),
-              menuItem('Peanut Chaat', '35/-'),
-              menuItem('Sabudana Khichdi', '30/-'),
-              menuItem('Dal Pakwan', '35/-'),
-              menuItem('Chatpati Bhel', '35/-'),
-            ],
-          ),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No menu categories available"));
+          }
 
-          // Sandwiches Category
-          buildCategory(
-            'Sandwiches',
-            [
-              menuItem('Veg Sandwich', '40/-'),
-              menuItem('Masala Sandwich', '40/-'),
-              menuItem('Tandoori Masala Sandwich', '50/-'),
-              menuItem('Cheese Sandwich', '60/-'),
-              menuItem('Double Cheese Sandwich', '75/-'),
-              menuItem('Cheese Chatni Sandwich', '75/-'),
-            ],
-          ),
-
-          // Maggi & Noodles Category
-          buildCategory(
-            'Maggi & Noodles',
-            [
-              menuItem('Plain Maggi', '30/-'),
-              menuItem('Vegetable Maggi', '35/-'),
-              menuItem('Cheese Plain Maggi', '55/-'),
-              menuItem('Veg Cheese Maggi', '60/-'),
-              menuItem('Veg Noodles', '50/-'),
-              menuItem('Noodles with Manchurian', '60/-'),
-              menuItem('Veg Manchurian Gravy', '60/-'),
-              menuItem('Veg Manchurian Dry', '70/-'),
-            ],
-          ),
-
-          // Rice & Fried Dishes Category
-          buildCategory(
-            'Rice & Fried Dishes',
-            [
-              menuItem('Fried Rice', '50/-'),
-              menuItem('Fried Rice with Manchurian', '60/-'),
-            ],
-          ),
-
-          // Thali & Combo Meals Category
-          buildCategory(
-            'Thali & Combo Meals',
-            [
-              menuItem('Bhojan Thali Mini', '45/-'),
-              menuItem('Bhojan Thali Full', '65/-'),
-              menuItem('Dal Chawal Mix', '35/-'),
-            ],
-          ),
-
-          // Dosa & South Indian Category
-          buildCategory(
-            'Dosa & South Indian',
-            [
-              menuItem('Masala Dosa', '60/-'),
-              menuItem('Paneer Dosa', '80/-'),
-              menuItem('Onion Tomato Utapam', '65/-'),
-              menuItem('Idli Sambhar', '50/-'),
-            ],
-          ),
-
-          // Parathas Category
-          buildCategory(
-            'Parathas',
-            [
-              menuItem('Aloo Paratha with Dahi', '35/-'),
-              menuItem('Sev Paratha', '45/-'),
-              menuItem('Paneer Paratha', '50/-'),
-              menuItem('Sada Paratha', '18/-'),
-            ],
-          ),
-
-          // Chinese Category
-          buildCategory(
-            'Chinese',
-            [
-              menuItem('Chilli Paneer Gravy', '85/-'),
-              menuItem('Chilli Paneer Dry', '100/-'),
-            ],
-          ),
-
-          // Indian Main Course Category
-          buildCategory(
-            'Indian Main Course',
-            [
-              menuItem('Sev Tamatar', '50/-'),
-              menuItem('Dal Fry', '50/-'),
-              menuItem('Butter Paneer Masala', '80/-'),
-              menuItem('Kadai Paneer', '80/-'),
-              menuItem('Shahi Paneer', '85/-'),
-              menuItem('Jeera Aloo', '50/-'),
-              menuItem('Aloo Chatpata', '50/-'),
-              menuItem('Jeera Rice', '40/-'),
-              menuItem('Plain Rice', '30/-'),
-              menuItem('Butter Khichdi', '75/-'),
-              menuItem('Pav Bhaji', '55/-'),
-              menuItem('Extra Pav', '15/-'),
-            ],
-          ),
-        ],
+          final categories = snapshot.data!.docs;
+          return ListView.builder(
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final categoryDoc = categories[index];
+              return CategorySection(categoryDoc.id, _addToCart); // Pass method
+            },
+          );
+        },
       ),
     );
   }
+}
 
-  // Helper method to build menu category with items
-  Widget buildCategory(String categoryName, List<Widget> items) {
-    return ExpansionTile(
-      title: Text(
-        categoryName,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-      children: items,
-    );
-  }
 
-  // Helper method to build menu item
-  Widget menuItem(String itemName, String price) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            itemName,
-            style: const TextStyle(fontSize: 16),
-          ),
-          Text(
-            price,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
+class CategorySection extends StatelessWidget {
+  final String categoryName;
+  final Function(Map<String, dynamic>, String) onAddToCart; // Pass callback
+
+  const CategorySection(this.categoryName, this.onAddToCart, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance
+          .collection('menu')
+          .doc(categoryName)
+          .collection('items')
+          .snapshots(),
+      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink(); // Prevents layout errors
+        }
+
+        final items = snapshot.data!.docs;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                categoryName,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(), // Fix nested scrolling issue
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final itemData = items[index].data() as Map<String, dynamic>?;
+                final itemId = items[index].id;
+
+                if (itemData == null) return const SizedBox.shrink(); // Prevent errors
+
+                return ListTile(
+                  title: Text(itemData['Name'] ?? "Unnamed Item"),
+                  subtitle: Text("\₹${(itemData['Price'] ?? 0).toString()}"),
+                  leading: itemData['imageUrl'] != null
+                      ? Image.network(
+                    itemData['imageUrl'],
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
+                  )
+                      : const Icon(Icons.fastfood),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.add_shopping_cart),
+                    onPressed: ()=> onAddToCart(itemData, itemId),
+
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

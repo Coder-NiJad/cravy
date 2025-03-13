@@ -1,12 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-//import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/material.dart';
 
 class FirebaseService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  //final FlutterLocalNotificationsPlugin _localNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> initialize() async {
+    await _requestPermissions();
+    _setupFCMListeners();  //
+    await _saveFCMToken();
+
     // Request permission for notifications
     NotificationSettings settings = await _firebaseMessaging.requestPermission();
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
@@ -14,23 +18,30 @@ class FirebaseService {
       return;
     }
 
-    // Get and log the initial token
-    _getToken();
+    _getToken(); // Get initial token
+    _listenForTokenRefresh(); //
+  }
 
-    // Listen for token updates
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-      print("Token updated: $newToken");
+  void _setupFCMListeners() {
+    // Handle foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("📩 Foreground Notification: ${message.notification?.title}");
+      _showNotification(message);
     });
 
-    // Handle foreground notifications
-    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    //   print("Foreground notification received: ${message.notification?.title}");
-    //   _showNotification(message);
-    // });
-
-    // Handle notification taps when the app is in the background
+    // Handle background messages when user taps the notification
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print("User tapped on notification: ${message.notification?.title}");
+      print("📩 App Opened from Background: ${message.notification?.title}");
+    });
+  }
+
+  void _listenForTokenRefresh() {
+    _firebaseMessaging.onTokenRefresh.listen((newToken) async {
+      print("FCM Token Refreshed: $newToken");
+      String? userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        await _firestore.collection('users').doc(userId).update({'fcmToken': newToken});
+      }
     });
   }
 
@@ -38,26 +49,38 @@ class FirebaseService {
     String? token = await _firebaseMessaging.getToken();
     if (token != null) {
       print("FCM Token: $token");
-      // Send this token to your backend server if needed
     } else {
       print("Failed to retrieve FCM token.");
     }
   }
 
-  // void _showNotification(RemoteMessage message) {
-  //   var androidDetails = AndroidNotificationDetails(
-  //     'channel_id', 'channel_name',
-  //     importance: Importance.high,
-  //     priority: Priority.high,
-  //   );
-  //
-  //   var notificationDetails = NotificationDetails(android: androidDetails);
-  //
-  //   _localNotificationsPlugin.show(
-  //     0,
-  //     message.notification?.title,
-  //     message.notification?.body,
-  //     notificationDetails,
-  //   );
-  // }
+  Future<void> _requestPermissions() async {
+    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print("User granted permission for notifications.");
+    } else {
+      print("User denied notification permissions.");
+    }
+  }
+
+  Future<void> _saveFCMToken() async {
+    String? token = await _firebaseMessaging.getToken();
+    if (token != null) {
+      print("FCM Token: $token");
+      String? userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        await _firestore.collection('users').doc(userId).update({'fcmToken': token});
+      }
+    }
+  }
+
+  void _showNotification(RemoteMessage message) {
+    print("Notification Received: ${message.notification?.title}");
+    // You can add a Snackbar or Custom Dialog here
+  }
 }

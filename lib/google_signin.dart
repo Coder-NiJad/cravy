@@ -16,8 +16,7 @@ class GoogleAuthService {
       if (googleUser == null) return null; // User canceled sign-in
 
       // Obtain the Google Sign-In authentication details
-      final GoogleSignInAuthentication googleAuth =
-      await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       // Create a new credential
       final OAuthCredential credential = GoogleAuthProvider.credential(
@@ -26,18 +25,32 @@ class GoogleAuthService {
       );
 
       // Sign in the user with Firebase
-      UserCredential userCredential =
-      await _auth.signInWithCredential(credential);
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+
+      // Ensure the widget is still mounted before using context
+      if (!context.mounted) return userCredential.user;
 
       // Navigate to home screen
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> HomeScreen()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
 
       return userCredential.user;
     } catch (e) {
       print("Google Sign-In Failed ❌: $e");
+
+      // Ensure context is mounted before showing a Snackbar
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Google Sign-In Failed: $e")),
+        );
+      }
+
       return null;
     }
   }
+
 
   Future<void> signOut() async {
     await _googleSignIn.signOut();

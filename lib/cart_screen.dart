@@ -1,87 +1,36 @@
 import 'package:cravy/slot.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'cart_provider.dart';
 
-class CartScreen extends StatefulWidget {
+class CartScreen extends ConsumerWidget {
   const CartScreen({super.key});
 
   @override
-  _CartScreenState createState() => _CartScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = FirebaseAuth.instance.currentUser;
+    final userId = user?.uid ?? 'default';
+    final cart = ref.watch(cartProvider(userId));
 
-class _CartScreenState extends State<CartScreen> {
-  // Example cart data
-  List<Map<String, dynamic>> cartItems = [
-    {
-      'name': 'Pizza',
-      'price': 200,
-      'image': 'assets/images/Pizza.jpg',
-      'quantity': 1,
-    },
-    {
-      'name': 'Burger',
-      'price': 150,
-      'image': 'assets/images/burger.jpg',
-      'quantity': 2,
-    },
-    {
-      'name': 'Pasta',
-      'price': 180,
-      'image': 'assets/images/pasta.jpg',
-      'quantity': 1,
-    },
-  ];
+    double totalPrice = cart.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
 
-  // Calculate the total price
-  double get totalPrice {
-    return cartItems.fold(
-      0,
-          (sum, item) => sum + (item['price'] * item['quantity']),
-    );
-  }
-
-  // Remove an item from the cart
-  void removeItem(int index) {
-    setState(() {
-      cartItems.removeAt(index);
-    });
-  }
-
-  // Increase the quantity of an item
-  void increaseQuantity(int index) {
-    setState(() {
-      cartItems[index]['quantity']++;
-    });
-  }
-
-  // Decrease the quantity of an item
-  void decreaseQuantity(int index) {
-    setState(() {
-      if (cartItems[index]['quantity'] > 1) {
-        cartItems[index]['quantity']--;
-      } else {
-        removeItem(index); // Remove item if quantity is 0
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Cart'),
         backgroundColor: Colors.white,
       ),
-      body: Column(
+      body: cart.isEmpty
+          ? const Center(child: Text("Your cart is empty!"))
+          : Column(
         children: [
-          // List of cart items
           Expanded(
             child: ListView.builder(
-              itemCount: cartItems.length,
+              itemCount: cart.length,
               itemBuilder: (context, index) {
-                final item = cartItems[index];
+                final item = cart[index];
                 return Container(
-                  margin:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -94,50 +43,54 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ],
                   ),
-                  height: 140, // Height of the box
+                  height: 140,
                   child: Row(
                     children: [
-                      // Item image
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          item['image'],
-                          width: MediaQuery.of(context).size.width * 0.25,
+                        child: Image.network(
+                          item.imageUrl ,
+                          width: MediaQuery.of(context).size.width * 0.2,
                           height: MediaQuery.of(context).size.height * 0.1,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              'assets/images/no_image.png',
+                              width: MediaQuery.of(context).size.width * 0.2,
+                              height: MediaQuery.of(context).size.height * 0.1,
+                              fit: BoxFit.cover,
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 16),
-                      // Item details
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment
-                              .spaceBetween, // Ensure no overflow
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Item name
                                 Text(
-                                  item['name'],
+                                  item.name,
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                // Delete icon
                                 IconButton(
-                                  onPressed: () => removeItem(index),
-                                  icon: Icon(Icons.delete,
-                                      color: Colors.red[600]),
+                                  onPressed: () => ref.read(cartProvider(userId).notifier).removeFromCart(item.id),
+                                  icon: Icon(
+                                    Icons.delete,
+                                    color: Colors.red[600],
+                                  ),
                                 ),
                               ],
                             ),
-                            // Item price
                             Text(
-                              'Price: ₹${item['price']}',
+                              'Price: ₹${item.price}',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey[600],
@@ -147,37 +100,34 @@ class _CartScreenState extends State<CartScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '₹${(item['price'] * item['quantity']).toStringAsFixed(2)}',
+                                  '₹${(item.price * item.quantity).toStringAsFixed(2)}',
                                   style: const TextStyle(
                                     fontSize: 16,
                                     color: Colors.black,
                                   ),
                                 ),
-                                // Quantity controls
                                 Container(
                                   height: 28,
                                   width: 112,
-                                  //color: Colors.green,
                                   decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5.0),
-                                      color: Colors.green[400]?.withOpacity(0.25),
-                                      border: Border.all(color: Colors.lightGreen)
-                                    //backgroundBlendMode: BlendMode.overlay
+                                    borderRadius: BorderRadius.circular(5.0),
+                                    color: Colors.green.shade400.withValues(alpha: (0.25 * 255)),
+                                    border: Border.all(color: Colors.lightGreen),
                                   ),
                                   child: Row(
                                     children: [
                                       IconButton(
-                                        onPressed: () => decreaseQuantity(index),
+                                        onPressed: () => ref.read(cartProvider(userId).notifier).decreaseQuantity(item.id),
                                         icon: const Icon(Icons.remove),
                                         iconSize: 14,
                                         padding: const EdgeInsets.symmetric(horizontal: 1.0),
                                       ),
                                       Text(
-                                        item['quantity'].toString(),
+                                        item.quantity.toString(),
                                         style: const TextStyle(fontSize: 12),
                                       ),
                                       IconButton(
-                                        onPressed: () => increaseQuantity(index),
+                                        onPressed: () => ref.read(cartProvider(userId).notifier).increaseQuantity(item.id),
                                         icon: const Icon(Icons.add),
                                         iconSize: 14,
                                         padding: const EdgeInsets.symmetric(horizontal: 1.0),
@@ -196,46 +146,47 @@ class _CartScreenState extends State<CartScreen> {
               },
             ),
           ),
-
-          // Bottom section for total price and buy button
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2.0),
-                  child: Card(
-                    color: Colors.white,
-                    child: SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.08,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 10.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                const Icon(Icons.request_page_outlined),
-                                const Text(' Total Bill: ', style: TextStyle(fontSize: 16),),
-                                Text(
-                                  '₹${totalPrice.toStringAsFixed(2)}', // total final no. of items Rs . total price
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                Card(
+                  color: Colors.white,
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.08,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 10.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.request_page_outlined),
+                              const Text(' Total Bill: ', style: TextStyle(fontSize: 16)),
+                              Text(
+                                '₹${totalPrice.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Text('        Inclusive of all taxes', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                '        Inclusive of all taxes',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -243,11 +194,13 @@ class _CartScreenState extends State<CartScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    // Navigate to payment options
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const Slot(),
+                        builder: (context) => Slot(
+                          totalPrice: totalPrice,
+                          items: cart,
+                        ),
                       ),
                     );
                   },
@@ -268,24 +221,3 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 }
-
-// Placeholder for the PaymentScreen
-// class PaymentScreen extends StatelessWidget {
-//   const PaymentScreen({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Payment Options'),
-//         backgroundColor: Colors.red[600],
-//       ),
-//       body: const Center(
-//         child: Text(
-//           'Payment options will be implemented here.',
-//           style: TextStyle(fontSize: 18),
-//         ),
-//       ),
-//     );
-//   }
-// }
