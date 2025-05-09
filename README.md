@@ -1,6 +1,7 @@
 # cravy
 
 A new Flutter project.
+Project For Canteens and Restaurants
 
 ## Getting Started
 
